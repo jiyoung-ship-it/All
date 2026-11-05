@@ -8,16 +8,16 @@
 - OS: macOS 15.6.1 (Build 24G90)
 - Shell: zsh (/bin/zsh)
 - 터미널: macOS 기본 터미널 앱
-- Docker 버전: 실습 후 작성
+- Docker 버전: 29.8.2 (OrbStack 사용)
 - Git 버전: 2.50.1 (Apple Git-155)
 
 ## 3. 수행 체크리스트
 - [x] 터미널 기본 조작
 - [x] 파일·디렉토리 권한 변경
-- [ ] Docker 설치 및 점검
-- [ ] hello-world·Ubuntu 실행
-- [ ] attach/exec 및 컨테이너 종료·유지 관찰
-- [ ] 이미지·컨테이너 관리, 로그·리소스 확인
+- [x] Docker 설치 및 점검
+- [x] hello-world·Ubuntu 실행
+- [x] attach/exec 및 컨테이너 종료·유지 관찰
+- [x] 이미지·컨테이너 관리, 로그·리소스 확인
 - [ ] Dockerfile 작성 및 커스텀 이미지 빌드·실행
 - [ ] 포트 매핑 및 접속 확인
 - [ ] 바인드 마운트 변경 반영
@@ -100,8 +100,108 @@ drwx------  2 jiyoung  staff  64 11  6 05:58 permission-test
 원본 로그에는 터미널 화면 제어 문자가 포함되어 있어,
 주요 결과는 위 코드블록에 별도로 정리했다.
 
-## 5. Docker 설치 및 운영
-버전·데몬 점검, 컨테이너 실습 및 운영 명령의 결과를 기록한다.
+## 5. Docker 설치 및 운영### 설치 및 점검
+macOS에 OrbStack을 설치·실행한 뒤 Docker CLI와 엔진의 동작을 확인했다.
+
+```text
+$ docker --version
+Docker version 29.8.2, build 7fc2dff
+
+$ docker info
+Client:
+ Version:    29.8.2
+ Context:    orbstack
+
+Server:
+ Server Version: 29.8.2
+ Operating System: OrbStack
+ OSType: linux
+ Architecture: aarch64
+```
+
+위 출력은 전체 결과 중 주요 항목을 발췌한 것이다.
+
+### hello-world 실행
+```text
+$ docker run --name hello-test hello-world
+Hello from Docker!
+```
+
+`docker ps -a`에서 hello-test의 `Exited (0)`을 확인했다.
+메시지 출력 후 정상 종료된 상태다.
+
+### Ubuntu 내부 명령 실행
+```text
+$ docker run -it --name ubuntu-practice ubuntu:24.04 bash
+
+# ls
+bin   dev  home  media  opt   root  sbin  sys  usr
+boot  etc  lib   mnt    proc  run   srv   tmp  var
+
+# echo "Inside Ubuntu container"
+Inside Ubuntu container
+
+# cat /etc/os-release
+PRETTY_NAME="Ubuntu 24.04.5 LTS"
+```
+
+`#`는 컨테이너 내부, `$`는 맥 터미널의 명령을 구분한 표시다.
+OS 정보는 첫 줄만 발췌했다.
+
+### exec와 attach 비교
+다음 순서로 명령을 실행하고 상태를 관찰했다.
+
+```text
+# exit
+$ docker ps -a
+$ docker start ubuntu-practice
+$ docker ps
+$ docker exec -it ubuntu-practice bash
+# exit
+$ docker ps
+$ docker attach ubuntu-practice
+# exit
+$ docker ps -a
+```
+
+| 관찰 상황 | 결과 |
+|---|---|
+| 최초 실행한 bash에서 exit | Exited (0) |
+| exec로 별도로 연 bash에서 exit | Up 상태 유지 |
+| attach로 연결한 주 실행 bash에서 exit | Exited (0) |
+
+컨테이너의 생존 여부는 주 프로세스의 실행 여부에 달려 있다.
+exec는 새 프로세스를 실행하고, attach는 기존 주 프로세스의 입출력에 연결한다.
+
+### 이미지 및 운영 상태 확인
+```text
+$ docker images
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+hello-world:latest   c567b231f656       18.5kB         10.3kB    U
+ubuntu:24.04         fe81560990fa        139MB         30.9MB    U
+
+$ docker logs hello-test
+Hello from Docker!
+
+$ docker start ubuntu-practice
+ubuntu-practice
+
+$ docker stats --no-stream ubuntu-practice
+CONTAINER ID   NAME              CPU %     MEM USAGE / LIMIT     MEM %     NET I/O         BLOCK I/O    PIDS
+2283c6cb75f2   ubuntu-practice   0.00%     1.441MiB / 7.816GiB   0.02%     1.13kB / 126B   3.6MB / 0B   1
+
+$ docker stop ubuntu-practice
+ubuntu-practice
+```
+
+로그 출력은 첫 메시지만 발췌했다.
+
+마지막 `docker ps -a`에서 ubuntu-practice는 `Exited (137)`로 표시됐다.
+중지는 완료됐지만 종료 코드 0의 정상 종료와 구분해 기록한다.
+이 로그만으로 강제 종료에 이른 상세 원인은 확정할 수 없다.
+
+### 전체 실행 증거
+[Docker 전체 명령 및 출력 로그](02-docker.txt)버전·데몬 점검, 컨테이너 실습 및 운영 명령의 결과를 기록한다.
 
 ## 6. Dockerfile 기반 웹 서버
 베이스 이미지, 커스텀한 내용과 목적, 소스코드 위치,
