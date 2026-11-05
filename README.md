@@ -18,8 +18,8 @@
 - [x] hello-world·Ubuntu 실행
 - [x] attach/exec 및 컨테이너 종료·유지 관찰
 - [x] 이미지·컨테이너 관리, 로그·리소스 확인
-- [ ] Dockerfile 작성 및 커스텀 이미지 빌드·실행
-- [ ] 포트 매핑 및 접속 확인
+- [x] Dockerfile 작성 및 커스텀 이미지 빌드·실행
+- [x] 포트 매핑 및 접속 확인
 - [ ] 바인드 마운트 변경 반영
 - [ ] Docker 볼륨 영속성 검증
 - [ ] Git 사용자 정보·기본 브랜치 설정
@@ -204,12 +204,84 @@ ubuntu-practice
 [Docker 전체 명령 및 출력 로그](02-docker.txt)버전·데몬 점검, 컨테이너 실습 및 운영 명령의 결과를 기록한다.
 
 ## 6. Dockerfile 기반 웹 서버
-베이스 이미지, 커스텀한 내용과 목적, 소스코드 위치,
-빌드·실행 명령 및 결과를 기록한다.
+
+### 소스코드
+- [웹 페이지](app/index.html)
+- [Dockerfile](Dockerfile)
+
+### 베이스 이미지와 커스텀 목적
+`nginx:stable-alpine`을 선택했다.
+정적 HTML을 제공하는 NGINX와 경량 Alpine Linux를 기반으로 한다.
+
+- LABEL: 이미지에 프로젝트 이름을 기록한다.
+- COPY: 기본 페이지 대신 직접 작성한 HTML을 제공한다.
+- EXPOSE: 컨테이너에서 사용하는 80번 포트를 명시한다.
+  실제 호스트 포트 연결은 실행 시 `-p`로 설정한다.
+
+### Dockerfile
+```dockerfile
+FROM nginx:stable-alpine
+LABEL org.opencontainers.image.title="jiyoung-workstation-web"
+COPY app/ /usr/share/nginx/html/
+EXPOSE 80
+```
+
+### 이미지 빌드
+저장소 최상위 폴더에서 실행한다.
+
+```text
+$ docker build -t workstation-web:1.0 .
+[+] Building 7.3s (7/7) FINISHED
+```
+
+빌드 출력은 완료 부분을 발췌했다.
+현재 폴더를 빌드 컨텍스트로 사용해 `workstation-web:1.0` 이미지를 만들었다.
 
 ## 7. 포트 매핑 및 접속
-포트 연결 명령과 검증 결과를 기록하고,
-주소창과 응답 화면이 함께 보이는 브라우저 캡처를 첨부한다.
+
+### 컨테이너 실행
+```text
+$ docker run -d --name workstation-web -p 127.0.0.1:8080:80 workstation-web:1.0
+51293396e4a9073230a44410dd6607a758ac52758bf39a829febcbb5d5964c4b
+```
+
+호스트의 127.0.0.1:8080을 컨테이너의 80번 포트에 연결했다.
+컨테이너의 웹 서버에 맥 브라우저에서 접근하기 위한 설정이다.
+
+`docker ps` 결과에서 다음을 확인했다.
+- 상태: Up 4 seconds
+- 포트: 127.0.0.1:8080->80/tcp
+- 컨테이너 이름: workstation-web
+
+### curl 검증
+```text
+$ curl http://localhost:8080
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>나의 개발 워크스테이션</title>
+</head>
+<body>
+  <h1>나의 첫 Docker 웹 서버</h1>
+  <p>NGINX 커스텀 이미지로 실행한 페이지입니다.</p>
+  <p>페이지 버전: 1</p>
+</body>
+</html>
+```
+
+### 브라우저 검증
+`http://localhost:8080`에 접속해 직접 작성한 페이지가 표시되는 것을 확인했다.
+
+![8080 포트 접속 성공](web-8080.png)
+
+### 전체 실행 증거
+[빌드·실행·접속 명령과 출력 로그](03-web.txt)
+
+### 재실행 참고
+같은 이름의 컨테이너가 이미 있다면 새로 생성하는 대신
+`docker start workstation-web`으로 시작한다.
+8080 포트는 다른 프로그램이 사용하지 않는 상태여야 한다.
 
 ## 8. 바인드 마운트
 실행 명령과 호스트 파일 변경 전후의 반영 결과를 기록한다.
