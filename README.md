@@ -12,8 +12,8 @@
 - Git 버전: 2.50.1 (Apple Git-155)
 
 ## 3. 수행 체크리스트
-- [ ] 터미널 기본 조작
-- [ ] 파일·디렉토리 권한 변경
+- [x] 터미널 기본 조작
+- [x] 파일·디렉토리 권한 변경
 - [ ] Docker 설치 및 점검
 - [ ] hello-world·Ubuntu 실행
 - [ ] attach/exec 및 컨테이너 종료·유지 관찰
@@ -26,7 +26,79 @@
 - [ ] GitHub·VSCode 연동
 
 ## 4. 터미널 조작 및 권한 실습
-실행 명령과 출력, 파일·디렉토리 권한 변경 전후를 기록한다.
+### 수행 내용
+- `pwd`: 현재 위치 확인
+- `ls -la`: 숨김 파일을 포함한 목록 확인
+- `cd`: 디렉토리 이동
+- `touch`: 빈 파일 생성
+- `echo`와 `cat`: 내용 저장 및 확인
+- `cp`: 파일 복사
+- `mv`: 이름 변경 및 파일 이동
+- `mkdir`: 디렉토리 생성
+- `rm`과 `rmdir`: 파일 및 빈 디렉토리 삭제
+- `ls -l`, `ls -ld`, `chmod`: 파일·디렉토리 권한 확인 및 변경
+
+### 주요 명령 및 실제 결과 발췌
+아래 명령은 전체 로그 중 일부를 발췌한 것이다.
+
+```text
+$ pwd
+/Users/jiyoung/dev-workstation
+
+$ touch memo.txt
+$ ls -l memo.txt
+-rw-r--r--  1 jiyoung  staff  0 11  6 05:55 memo.txt
+
+$ echo "My first terminal practice" > memo.txt
+$ cat memo.txt
+My first terminal practice
+
+$ cp memo.txt memo-copy.txt
+$ mv memo-copy.txt memo-renamed.txt
+$ mkdir archive
+$ mv memo-renamed.txt archive/
+$ ls -l archive
+total 8
+-rw-r--r--  1 jiyoung  staff  27 11  6 05:55 memo-renamed.txt
+
+$ rm archive/memo-renamed.txt
+$ rmdir archive
+
+$ mv memo.txt practice/
+$ cd practice
+
+$ ls -l memo.txt
+-rw-r--r--  1 jiyoung  staff  27 11  6 05:55 memo.txt
+$ chmod 600 memo.txt
+$ ls -l memo.txt
+-rw-------  1 jiyoung  staff  27 11  6 05:55 memo.txt
+
+$ mkdir permission-test
+$ ls -ld permission-test
+drwxr-xr-x  2 jiyoung  staff  64 11  6 05:58 permission-test
+$ chmod 700 permission-test
+$ ls -ld permission-test
+drwx------  2 jiyoung  staff  64 11  6 05:58 permission-test
+```
+
+### 권한 해석
+권한 숫자는 소유자·그룹·기타 사용자 순서이며,
+읽기(r)=4, 쓰기(w)=2, 실행(x)=1을 더해 표현한다.
+
+- 파일: 644 → 600. 소유자만 읽고 쓸 수 있도록 변경했다.
+- 디렉토리: 755 → 700. 소유자만 읽기·쓰기·접근할 수 있도록 변경했다.
+- 디렉토리의 실행(x) 권한은 해당 디렉토리를 통과하거나 들어가는 데 필요하다.
+
+### 경로
+- 절대 경로: `/Users/jiyoung/dev-workstation/practice`
+- 상대 경로: `dev-workstation`에서의 `practice`
+- 다른 PC에서는 사용자 이름에 맞춰 `~/dev-workstation`을 사용한다.
+
+### 전체 실행 증거
+[터미널 전체 명령 및 출력 로그](01-terminal.txt)
+
+원본 로그에는 터미널 화면 제어 문자가 포함되어 있어,
+주요 결과는 위 코드블록에 별도로 정리했다.
 
 ## 5. Docker 설치 및 운영
 버전·데몬 점검, 컨테이너 실습 및 운영 명령의 결과를 기록한다.
