@@ -20,8 +20,8 @@
 - [x] 이미지·컨테이너 관리, 로그·리소스 확인
 - [x] Dockerfile 작성 및 커스텀 이미지 빌드·실행
 - [x] 포트 매핑 및 접속 확인
-- [ ] 바인드 마운트 변경 반영
-- [ ] Docker 볼륨 영속성 검증
+- [x] 바인드 마운트 변경 반영
+- [x] Docker 볼륨 영속성 검증
 - [ ] Git 사용자 정보·기본 브랜치 설정
 - [ ] GitHub·VSCode 연동
 
@@ -284,11 +284,107 @@ $ curl http://localhost:8080
 8080 포트는 다른 프로그램이 사용하지 않는 상태여야 한다.
 
 ## 8. 바인드 마운트
-실행 명령과 호스트 파일 변경 전후의 반영 결과를 기록한다.
+
+### 목적
+호스트의 HTML 파일을 수정했을 때 이미지 재빌드나
+컨테이너 재생성 없이 웹 서버 응답에 반영되는지 검증했다.
+
+### 실행
+프로젝트 최상위 폴더에서 실행했다.
+
+```bash
+cp -R app bind-site
+docker run -d --name workstation-bind -p 127.0.0.1:8081:80 --mount "type=bind,source=$PWD/bind-site,target=/usr/share/nginx/html,readonly" workstation-web:1.0
+```
+
+`$PWD/bind-site`는 현재 프로젝트 안의 폴더이므로,
+다른 PC에서도 프로젝트 최상위에서 실행하면 경로를 맞출 수 있다.
+컨테이너에서는 읽기 전용으로 연결하고 호스트에서 파일을 수정했다.
+
+### 변경 전후 검증
+명령 출력은 버전이 표시된 부분만 발췌했다.
+
+변경 전:
+```text
+$ curl http://localhost:8081
+  <p>페이지 버전: 1</p>
+```
+
+호스트 파일 수정:
+```bash
+sed -i '' 's/페이지 버전: 1/페이지 버전: 2/' bind-site/index.html
+```
+
+위 sed 명령은 macOS 기준이다.
+
+변경 후:
+```text
+$ cat bind-site/index.html
+  <p>페이지 버전: 2</p>
+
+$ curl http://localhost:8081
+  <p>페이지 버전: 2</p>
+```
+
+같은 컨테이너에서 호스트 파일 변경이 응답에 반영됨을 확인했다.
+
+### 브라우저 증거
+변경 전:
+![바인드 마운트 변경 전](bind-before.png)
+
+변경 후:
+![바인드 마운트 변경 후](bind-after.png)
 
 ## 9. 볼륨 영속성
-볼륨 생성·연결 명령과 컨테이너 삭제 전후의 데이터 확인 결과를 기록한다.
 
+### 목적
+컨테이너를 삭제한 뒤 새 컨테이너에 같은 볼륨을 연결해
+저장된 데이터가 유지되는지 검증했다.
+
+### 볼륨 생성과 첫 컨테이너 실행
+```text
+$ docker volume create workstation-data
+workstation-data
+```
+
+```bash
+docker run -d --name volume-first --mount type=volume,source=workstation-data,target=/data ubuntu:24.04 sleep infinity
+```
+
+### 데이터 저장 및 삭제 전 확인
+```text
+$ docker exec volume-first sh -c 'echo "Volume persistence verified" > /data/proof.txt'
+
+$ docker exec volume-first cat /data/proof.txt
+Volume persistence verified
+```
+
+### 첫 컨테이너 삭제
+```text
+$ docker rm -f volume-first
+volume-first
+```
+
+### 같은 볼륨을 연결한 새 컨테이너 실행
+```bash
+docker run -d --name volume-second --mount type=volume,source=workstation-data,target=/data ubuntu:24.04 sleep infinity
+```
+
+### 삭제 후 데이터 확인
+```text
+$ docker exec volume-second cat /data/proof.txt
+Volume persistence verified
+```
+
+첫 컨테이너를 삭제한 뒤에도 동일한 내용이 출력됐다.
+데이터가 컨테이너와 별도로 볼륨에 보관됨을 확인했다.
+
+### 바인드 마운트와 볼륨의 차이
+- 바인드 마운트: 호스트의 지정한 파일·폴더를 컨테이너에 연결한다.
+- 볼륨: Docker가 관리하는 저장 공간을 컨테이너에 연결한다.
+
+### 전체 실행 증거
+[바인드 마운트·볼륨 실습 명령과 출력](04-storage.txt)
 ## 10. Git 및 GitHub·VSCode 연동
 Git 설정 명령과 결과, GitHub·VSCode 연동 증거를 기록한다.
 
