@@ -22,8 +22,8 @@
 - [x] 포트 매핑 및 접속 확인
 - [x] 바인드 마운트 변경 반영
 - [x] Docker 볼륨 영속성 검증
-- [ ] Git 사용자 정보·기본 브랜치 설정
-- [ ] GitHub·VSCode 연동
+- [x] Git 사용자 정보·기본 브랜치 설정
+- [x] GitHub·VSCode 연동
 
 ## 4. 터미널 조작 및 권한 실습
 ### 수행 내용
@@ -386,7 +386,161 @@ Volume persistence verified
 ### 전체 실행 증거
 [바인드 마운트·볼륨 실습 명령과 출력](04-storage.txt)
 ## 10. Git 및 GitHub·VSCode 연동
-Git 설정 명령과 결과, GitHub·VSCode 연동 증거를 기록한다.
+
+### Git 설정
+```bash
+git config --global user.name "jiyoung-ship-it"
+git config --global user.email "268129282+jiyoung-ship-it@users.noreply.github.com"
+git config --global init.defaultBranch main
+```
+
+GitHub의 noreply 이메일을 사용했다.
+
+### 전체 설정 확인
+아래는 실제 출력 중 주요 항목을 발췌한 것이다.
+전체 출력은 Git 실습 로그에서 확인할 수 있다.
+
+```text
+$ git --no-pager config --list
+credential.helper=osxkeychain
+init.defaultbranch=main
+user.name=jiyoung-ship-it
+user.email=268129282+jiyoung-ship-it@users.noreply.github.com
+remote.origin.url=https://github.com/jiyoung-ship-it/All.git
+branch.main.remote=origin
+branch.main.merge=refs/heads/main
+```
+
+### 저장소 복제 및 원격 연결
+```bash
+git clone https://github.com/jiyoung-ship-it/All.git submission
+cd submission
+```
+
+```text
+$ git remote -v
+origin  https://github.com/jiyoung-ship-it/All.git (fetch)
+origin  https://github.com/jiyoung-ship-it/All.git (push)
+
+$ git status
+On branch main
+Your branch is up to date with 'origin/main'.
+
+nothing to commit, working tree clean
+```
+
+위 상태는 복제 직후 확인한 결과다.
+
+### VSCode 연동
+복제한 저장소 폴더에서 다음 명령으로 VSCode를 열었다.
+
+```bash
+open -a "Visual Studio Code" .
+```
+
+VSCode에서 프로젝트를 열고 `jiyoung-ship-it` 계정으로
+GitHub 로그인을 완료했다.
+
+![VSCode GitHub 로그인 증거](vscode-github.png)
+
+Git은 로컬 코드 변경 이력을 관리하는 도구이고,
+GitHub는 Git 저장소를 온라인으로 공유하는 협업 서비스다.
+
+[Git 설정·복제·원격 연결 전체 로그](05-git.txt)
+
+## 11. 재현 방법 및 증거 링크
+
+### 준비
+- Git과 Docker 실행 환경이 필요하다.
+- macOS 실습에서는 OrbStack을 실행했다.
+- 이미지 다운로드를 위한 인터넷 연결이 필요하다.
+- 호스트의 8080·8081 포트가 비어 있어야 한다.
+
+### 웹 서버 실행
+처음 복제하는 새 작업 폴더를 기준으로 한다.
+
+```bash
+git clone https://github.com/jiyoung-ship-it/All.git workstation-review
+cd workstation-review
+docker build -t workstation-web:1.0 .
+docker run -d --name review-web -p 127.0.0.1:8080:80 workstation-web:1.0
+curl http://localhost:8080
+```
+
+브라우저에서 `http://localhost:8080`에 접속한다.
+기존 실습 컨테이너가 8080 포트를 사용 중이면 먼저 중지한다.
+
+```bash
+docker stop workstation-web
+```
+
+`review-web`이 이미 존재한다면 새로 생성하지 않고
+`docker start review-web`을 사용한다.
+
+### 바인드 마운트 재현
+8절의 명령을 저장소 최상위 폴더에서 실행한다.
+`bind-site` 폴더는 `cp -R app bind-site`로 생성한다.
+수정 전 버전 1과 수정 후 버전 2의 응답을 비교한다.
+
+### 볼륨 영속성 재현
+9절의 순서대로 볼륨 생성 → 파일 저장 → 첫 컨테이너 삭제
+→ 같은 볼륨을 연결한 새 컨테이너 생성 → 파일 확인을 수행한다.
+
+같은 이름의 실습 컨테이너나 볼륨이 이미 있다면
+새 이름을 정하고 관련 명령에 일관되게 적용한다.
+컨테이너 삭제와 볼륨 삭제는 별도 작업이며,
+영속성 검증 중에는 볼륨을 삭제하지 않는다.
+
+### 증거 목록
+| 항목 | 증거 |
+|---|---|
+| 터미널·권한 | [01-terminal.txt](01-terminal.txt) |
+| Docker 점검·운영 | [02-docker.txt](02-docker.txt) |
+| 이미지 빌드·웹 접속 | [03-web.txt](03-web.txt) |
+| 브라우저 접속 | [web-8080.png](web-8080.png) |
+| 바인드 마운트·볼륨 | [04-storage.txt](04-storage.txt) |
+| 변경 전 | [bind-before.png](bind-before.png) |
+| 변경 후 | [bind-after.png](bind-after.png) |
+| Git 설정·원격 연결 | [05-git.txt](05-git.txt) |
+| VSCode 로그인 | [vscode-github.png](vscode-github.png) |
+
+원본 script 로그에는 터미널 화면 제어 문자가 포함되어 있다.
+주요 명령과 결과는 README 코드블록에 별도로 정리했다.
+
+## 12. 트러블슈팅
+
+### 사례 1: Docker 명령을 찾을 수 없음
+- 문제: `docker --version` 실행 시 다음 오류가 발생했다.
+
+```text
+zsh: command not found: docker
+```
+
+- 원인 가설: Docker CLI가 설치되지 않았거나 명령 검색 경로에 없을 수 있다.
+- 확인: 초기 버전 확인은 실패했으며, OrbStack 설치·실행 후 같은 명령을 다시 실행했다.
+- 해결: OrbStack 설치·초기 설정 후 Docker 버전과 엔진 정보를 확인했다.
+
+```text
+$ docker --version
+Docker version 29.8.2, build 7fc2dff
+```
+
+- 결과: `docker info`에서 Server 정보를 확인하고 hello-world 실행에 성공했다.
+- 증거: [설치 후 검증 로그](02-docker.txt)
+
+### 사례 2: VSCode 앱을 찾을 수 없음
+- 문제: 저장소 폴더에서 VSCode를 열 때 다음 오류가 발생했다.
+
+```text
+$ open -a "Visual Studio Code" .
+Unable to find application named 'Visual Studio Code'
+```
+
+- 원인 가설: VSCode가 설치되지 않았거나 macOS에서 앱을 찾을 수 없는 위치에 있을 수 있다.
+- 확인: 실행 명령에서 앱 검색 오류를 확인했다.
+- 해결: VSCode를 설치·응용 프로그램 폴더에 배치한 뒤 같은 명령을 다시 실행했다.
+- 결과: 저장소 폴더가 열리고 GitHub 로그인까지 완료했다.
+- 증거: [실패 및 재실행 로그](05-git.txt), [로그인 캡처](vscode-github.png)
 
 ## 11. 재현 방법 및 증거 링크
 평가자가 따라 할 실행 절차와 각 로그·캡처의 위치를 정리한다.
